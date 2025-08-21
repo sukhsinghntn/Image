@@ -1,4 +1,5 @@
 @using DynamicFormsApp.Shared
+@using System.Linq
 
 <h5 class="text-muted">Live Preview</h5>
 @if (!string.IsNullOrWhiteSpace(FormName))
@@ -125,6 +126,44 @@
                                 </tbody>
                             </table>
                             break;
+                        case "grid_text":
+                            EnsureTextGrid(field);
+                            var rows = textGridValues[field.Key];
+                            <table class="table table-bordered table-sm">
+                                <thead>
+                                    <tr>
+                                        @foreach (var col in field.GridColumns)
+                                        {
+                                            <th>@col</th>
+                                        }
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int r = 0; r < rows.Count; r++)
+                                    {
+                                        <tr>
+                                            @for (int c = 0; c < field.GridColumns.Count; c++)
+                                            {
+                                                <td><input class="form-control" @bind="rows[r][c]" /></td>
+                                            }
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveTextRow(field.Key, r)">×</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                    <tr>
+                                        @for (int c = 0; c < field.GridColumns.Count; c++)
+                                        {
+                                            <td></td>
+                                        }
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => AddTextRow(field.Key, field.GridColumns.Count)">+ Add Row</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            break;
                         case "file":
                             <input type="file" class="form-control" />
                             break;
@@ -154,6 +193,46 @@
 @code {
     [Parameter] public List<DesignerSection> Sections { get; set; } = new();
     [Parameter] public string? FormName { get; set; }
+
+    Dictionary<string, List<List<string>>> textGridValues = new();
+
+    void EnsureTextGrid(DesignerField field)
+    {
+        if (!textGridValues.ContainsKey(field.Key))
+        {
+            var row = Enumerable.Repeat(string.Empty, field.GridColumns.Count).ToList();
+            textGridValues[field.Key] = new List<List<string>> { row };
+        }
+        else
+        {
+            var rows = textGridValues[field.Key];
+            foreach (var r in rows)
+            {
+                while (r.Count < field.GridColumns.Count)
+                    r.Add(string.Empty);
+                while (r.Count > field.GridColumns.Count)
+                    r.RemoveAt(r.Count - 1);
+            }
+        }
+    }
+
+    void AddTextRow(string key, int cols)
+    {
+        if (!textGridValues.TryGetValue(key, out var rows))
+        {
+            rows = new List<List<string>>();
+            textGridValues[key] = rows;
+        }
+        rows.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+    }
+
+    void RemoveTextRow(string key, int index)
+    {
+        if (textGridValues.TryGetValue(key, out var rows) && index >= 0 && index < rows.Count)
+        {
+            rows.RemoveAt(index);
+        }
+    }
 
     string GetImageStyle(DesignerField f) =>
         $"max-width:100%;{(f.ImageWidth.HasValue ? $"width:{f.ImageWidth}px;" : string.Empty)}{(f.ImageHeight.HasValue ? $"height:{f.ImageHeight}px;" : string.Empty)}";
