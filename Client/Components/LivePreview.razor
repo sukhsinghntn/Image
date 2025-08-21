@@ -144,7 +144,7 @@
                                             <tr>
                                                 @for (int c = 0; c < field.GridColumns.Count; c++)
                                                 {
-                                                    <td><input class="form-control" value="@rows[r][c]" @onchange="e => OnTextGridChanged(field, r, c, e)" /></td>
+                                                    <td><input class="form-control" value="@rows[r][c]" @oninput="e => OnTextGridChanged(field, r, c, e)" /></td>
                                                 }
                                                 <td><button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveTextGridRow(field, r)">×</button></td>
                                             </tr>

@@ -227,7 +227,7 @@ else
                                     <tr>
                                         @for (int c = 0; c < txtCols.Count; c++)
                                         {
-                                            <td><input class="form-control" value="@txtRows[r][c]" @onchange="e => OnTextGridChanged(fld.Key, r, c, e)" /></td>
+                                            <td><input class="form-control" value="@txtRows[r][c]" @oninput="e => OnTextGridChanged(fld.Key, r, c, e)" /></td>
                                         }
                                         <td><button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveTextGridRow(fld.Key, r)">×</button></td>
                                     </tr>
