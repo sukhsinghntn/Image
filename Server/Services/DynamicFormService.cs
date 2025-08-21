@@ -338,7 +338,6 @@ namespace DynamicFormsApp.Server.Services
                 {
                     if (je.ValueKind == JsonValueKind.Array)
                     {
-                        // attempt to detect nested arrays (text grids) and trim empty rows
                         try
                         {
                             var nested = JsonSerializer.Deserialize<List<List<string>>>(je.GetRawText()) ?? new();
@@ -346,7 +345,7 @@ namespace DynamicFormsApp.Server.Services
                                 .Where(row => row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
                                 .Select(row => row.Select(cell => cell ?? string.Empty).ToList())
                                 .ToList();
-                            raw = nested.Count > 0 ? JsonSerializer.Serialize(nested) : null;
+                            raw = JsonSerializer.Serialize(nested);
                         }
                         catch
                         {
@@ -396,7 +395,7 @@ namespace DynamicFormsApp.Server.Services
                         .Where(row => row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
                         .Select(row => row.Select(cell => cell ?? string.Empty).ToList())
                         .ToList();
-                    raw = cleaned.Count > 0 ? JsonSerializer.Serialize(cleaned) : null;
+                    raw = JsonSerializer.Serialize(cleaned);
                 }
 
                 sqlParams.Add(new SqlParameter($"@p{idx}", raw ?? (object)DBNull.Value));
