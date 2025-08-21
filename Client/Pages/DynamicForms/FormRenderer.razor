@@ -231,7 +231,7 @@ else
                                         }
                                         <td>
                                             <button class="btn btn-sm btn-outline-danger" type="button"
-                                                    @onclick="() => RemoveTextGridRow(fld.Key, i, textCols.Count)">×</button>
+                                                    @onclick="() => RemoveTextGridRow(fld.Key, i)">×</button>
                                         </td>
                                     </tr>
                                 }
@@ -570,9 +570,6 @@ else
             responseData[key] = list;
         }
 
-        if (list.Count == 0)
-            list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
-
         foreach (var row in list)
         {
             while (row.Count < cols)
@@ -587,14 +584,12 @@ else
         list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
     }
 
-    void RemoveTextGridRow(string key, int index, int cols)
+    void RemoveTextGridRow(string key, int index)
     {
         if (!responseData.TryGetValue(key, out var val) || val is not List<List<string>> list)
             return;
         if (index >= 0 && index < list.Count)
             list.RemoveAt(index);
-        if (list.Count == 0)
-            list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
     }
 
     void OnTextGridChanged(string key, int row, int col, ChangeEventArgs e)
@@ -602,29 +597,10 @@ else
         if (!responseData.TryGetValue(key, out var val) || val is not List<List<string>> list)
             return;
 
-        if (row < 0 || col < 0)
+        if (row < 0 || row >= list.Count || col < 0 || col >= list[row].Count)
             return;
 
-        int cols = list.Count > 0 ? list[0].Count : col + 1;
-
-        while (list.Count <= row)
-        {
-            list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
-        }
-
-        var rowList = list[row];
-
-        while (rowList.Count < cols)
-        {
-            rowList.Add(string.Empty);
-        }
-
-        while (rowList.Count <= col)
-        {
-            rowList.Add(string.Empty);
-        }
-
-        rowList[col] = e.Value?.ToString() ?? string.Empty;
+        list[row][col] = e.Value?.ToString() ?? string.Empty;
     }
 
     private async Task OnFileUploadChanged(string key, InputFileChangeEventArgs e)

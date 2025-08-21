@@ -188,7 +188,7 @@
     {
         if (!textGridValues.ContainsKey(field.Key))
         {
-            textGridValues[field.Key] = new List<List<string>> { new List<string>(new string[field.GridColumns.Count]) };
+            textGridValues[field.Key] = new List<List<string>>();
         }
     }
 
@@ -203,8 +203,6 @@
         EnsureTextGrid(field);
         if (index >= 0 && index < textGridValues[field.Key].Count)
             textGridValues[field.Key].RemoveAt(index);
-        if (textGridValues[field.Key].Count == 0)
-            AddTextGridRow(field);
     }
 
     string GetImageStyle(DesignerField f) =>
