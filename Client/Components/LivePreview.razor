@@ -211,8 +211,6 @@
         return data;
     }
 
-    bool IsTextGridRowEmpty(List<string> row) => row.All(string.IsNullOrWhiteSpace);
-
     void RemoveTextGridRow(DesignerField field, int index)
     {
         var rows = GetTextGridData(field);
@@ -232,10 +230,9 @@
     {
         var rows = GetTextGridData(field);
 
-        while (rows.Count <= row)
+        if (row < 0 || row >= rows.Count)
         {
-            var cols = rows[0].Count;
-            rows.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+            return;
         }
 
         var rowList = rows[row];
@@ -245,18 +242,6 @@
         }
 
         rowList[col] = e.Value?.ToString() ?? string.Empty;
-
-        for (int i = rows.Count - 1; i > 0; i--)
-        {
-            if (IsTextGridRowEmpty(rows[i]) && IsTextGridRowEmpty(rows[i - 1]))
-            {
-                rows.RemoveAt(i);
-            }
-            else if (!IsTextGridRowEmpty(rows[i]))
-            {
-                break;
-            }
-        }
     }
 
     string GetImageStyle(DesignerField f) =>

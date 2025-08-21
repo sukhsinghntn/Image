@@ -597,21 +597,13 @@ else
         data.Add(Enumerable.Repeat(string.Empty, cols).ToList());
     }
 
-    bool IsTextGridRowEmpty(List<string> row)
-    {
-        return row.All(string.IsNullOrWhiteSpace);
-    }
-
     void OnTextGridChanged(string key, int row, int col, ChangeEventArgs e)
     {
-        // Retrieve existing data and expand rows/columns as needed
         var data = GetTextGridData(key, col + 1);
 
-        while (data.Count <= row)
+        if (row < 0 || row >= data.Count)
         {
-            // Mirror the column count of the first row for new rows
-            var cols = data[0].Count;
-            data.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+            return;
         }
 
         var rowList = data[row];
@@ -621,18 +613,6 @@ else
         }
 
         rowList[col] = e.Value?.ToString() ?? string.Empty;
-
-        for (int i = data.Count - 1; i > 0; i--)
-        {
-            if (IsTextGridRowEmpty(data[i]) && IsTextGridRowEmpty(data[i - 1]))
-            {
-                data.RemoveAt(i);
-            }
-            else if (!IsTextGridRowEmpty(data[i]))
-            {
-                break;
-            }
-        }
     }
 
     private async Task OnFileUploadChanged(string key, InputFileChangeEventArgs e)
