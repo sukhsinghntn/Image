@@ -305,7 +305,6 @@ namespace DynamicFormsApp.Server.Services
 
         public async Task<Form> StoreResponseAsync(int formId, Dictionary<string, object> values, string? responderName = null)
         {
-            // Ensure we load field definitions so we know which columns to insert values for.
             var form = await _db.Forms
                 .Include(f => f.Fields)
                 .FirstOrDefaultAsync(f => f.Id == formId)
@@ -314,6 +313,7 @@ namespace DynamicFormsApp.Server.Services
             {
                 throw new InvalidOperationException("Form inactive");
             }
+
             var rawName = SanitizeKey(form.Name);
             var tableName = $"Form_{formId}_{rawName}";
 
@@ -327,8 +327,7 @@ namespace DynamicFormsApp.Server.Services
                 .ToDictionary(k => k.Key, v => v.Value);
 
             var cols = string.Join(", ", filtered.Keys.Select(k => $"[{k}]"));
-            var paramNames = string.Join(", ",
-                filtered.Keys.Select((k, i) => $"@p{i}"));
+            var paramNames = string.Join(", ", filtered.Keys.Select((k, i) => $"@p{i}"));
 
             var sqlParams = new List<SqlParameter>();
             int idx = 0;
@@ -344,18 +343,19 @@ namespace DynamicFormsApp.Server.Services
                         JsonValueKind.Number when je.TryGetDouble(out var d) => d,
                         JsonValueKind.True => true,
                         JsonValueKind.False => false,
-                        // Persist any array or object payload as its JSON representation
                         JsonValueKind.Array => je.GetRawText(),
                         JsonValueKind.Object => je.GetRawText(),
                         JsonValueKind.Null => null,
                         _ => je.GetRawText(),
                     };
                 }
-                else if (raw is System.Collections.IEnumerable && raw is not string)
+                else if (raw is List<string> stringList)
                 {
-                    // Serialize collections (e.g., text grid rows) to JSON strings
-                    // Use the runtime type so nested lists are preserved
-                    raw = JsonSerializer.Serialize(raw);
+                    raw = JsonSerializer.Serialize(stringList);
+                }
+                else if (raw is List<List<string>> nestedList)
+                {
+                    raw = JsonSerializer.Serialize(nestedList);
                 }
 
                 sqlParams.Add(new SqlParameter($"@p{idx}", raw ?? DBNull.Value));
