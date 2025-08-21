@@ -125,6 +125,35 @@
                                 </tbody>
                             </table>
                             break;
+                        case "grid_text":
+                            {
+                                var rows = GetTextGridRows(field);
+                                <table class="table table-bordered table-sm">
+                                    <thead>
+                                        <tr>
+                                            @foreach (var col in field.GridColumns)
+                                            {
+                                                <th>@col</th>
+                                            }
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var (r, idx) in rows.Select((r, idx) => (r, idx)))
+                                        {
+                                            <tr>
+                                                @foreach (var col in field.GridColumns)
+                                                {
+                                                    <td><input class="form-control" /></td>
+                                                }
+                                                <td><button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveTextGridRow(field, idx)">×</button></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => AddTextGridRow(field)">+ Add Row</button>
+                            }
+                            break;
                         case "file":
                             <input type="file" class="form-control" />
                             break;
@@ -154,6 +183,41 @@
 @code {
     [Parameter] public List<DesignerSection> Sections { get; set; } = new();
     [Parameter] public string? FormName { get; set; }
+
+    Dictionary<DesignerField, List<int>> textGridRows = new();
+
+    List<int> GetTextGridRows(DesignerField field)
+    {
+        if (!textGridRows.TryGetValue(field, out var rows))
+        {
+            rows = new List<int> { 0 };
+            textGridRows[field] = rows;
+        }
+        if (rows.Count == 0)
+        {
+            rows.Add(0);
+        }
+        return rows;
+    }
+
+    void AddTextGridRow(DesignerField field)
+    {
+        var rows = GetTextGridRows(field);
+        rows.Add(rows.Count);
+    }
+
+    void RemoveTextGridRow(DesignerField field, int index)
+    {
+        var rows = GetTextGridRows(field);
+        if (index >= 0 && index < rows.Count)
+        {
+            rows.RemoveAt(index);
+        }
+        if (rows.Count == 0)
+        {
+            rows.Add(0);
+        }
+    }
 
     string GetImageStyle(DesignerField f) =>
         $"max-width:100%;{(f.ImageWidth.HasValue ? $"width:{f.ImageWidth}px;" : string.Empty)}{(f.ImageHeight.HasValue ? $"height:{f.ImageHeight}px;" : string.Empty)}";
