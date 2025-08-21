@@ -237,8 +237,6 @@ else
                                 }
                             </tbody>
                         </table>
-                        <button class="btn btn-sm btn-outline-primary" type="button"
-                                @onclick="() => AddTextGridRow(fld.Key, textCols.Count)">Add Row</button>
                         break;
 
                     case "file":
@@ -570,19 +568,18 @@ else
             list = new List<List<string>>();
             responseData[key] = list;
         }
-        if (list.Count == 0)
-        {
-            list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
-        }
-    }
 
-    void AddTextGridRow(string key, int cols)
-    {
-        if (!responseData.TryGetValue(key, out var val) || val is not List<List<string>> list)
+        foreach (var row in list)
         {
-            list = new List<List<string>>();
-            responseData[key] = list;
+            while (row.Count < cols)
+                row.Add(string.Empty);
         }
+
+        while (list.Count > 0 && list[^1].All(string.IsNullOrEmpty))
+        {
+            list.RemoveAt(list.Count - 1);
+        }
+
         list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
     }
 
@@ -592,8 +589,7 @@ else
             return;
         if (index >= 0 && index < list.Count)
             list.RemoveAt(index);
-        if (list.Count == 0)
-            list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+        EnsureTextGrid(key, cols);
     }
 
     void OnTextGridChanged(string key, int row, int col, ChangeEventArgs e)
@@ -606,7 +602,6 @@ else
 
         int cols = list.Count > 0 ? list[0].Count : col + 1;
 
-        // Ensure the requested row exists with the expected number of columns
         while (list.Count <= row)
         {
             list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
@@ -614,19 +609,19 @@ else
 
         var rowList = list[row];
 
-        // Ensure the row has all expected columns
         while (rowList.Count < cols)
         {
             rowList.Add(string.Empty);
         }
 
-        // Grow further if a higher column index is requested
         while (rowList.Count <= col)
         {
             rowList.Add(string.Empty);
         }
 
         rowList[col] = e.Value?.ToString() ?? string.Empty;
+
+        EnsureTextGrid(key, cols);
     }
 
     private async Task OnFileUploadChanged(string key, InputFileChangeEventArgs e)
