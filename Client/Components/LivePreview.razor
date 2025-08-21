@@ -92,6 +92,7 @@
                             break;
                         case "grid_radio":
                         case "grid_checkbox":
+                        case "grid_text":
                             <table class="table table-bordered table-sm">
                                 <thead>
                                     <tr>
@@ -114,9 +115,13 @@
                                                     {
                                                         <input type="radio" name="@($"grid-{field.Key}-{gridRow}")" />
                                                     }
-                                                    else
+                                                    else if (field.FieldType == "grid_checkbox")
                                                     {
                                                         <input type="checkbox" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <input type="text" class="form-control" />
                                                     }
                                                 </td>
                                             }

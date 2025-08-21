@@ -91,7 +91,8 @@
                             </div>
                         }
                     </div>
-                    <div class="mt-1">
+                    <div class="mt-1 d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="AddRow">+ Add Row</button>
                         <button class="btn btn-sm btn-outline-secondary" @onclick="SortRows">Sort A-Z</button>
                     </div>
                 </div>
@@ -110,7 +111,8 @@
                             </div>
                         }
                     </div>
-                    <div class="mt-1">
+                    <div class="mt-1 d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="AddColumn">+ Add Column</button>
                         <button class="btn btn-sm btn-outline-secondary" @onclick="SortColumns">Sort A-Z</button>
                     </div>
                 </div>
@@ -188,6 +190,7 @@
         "scale" => "Linear Scale",
         "grid_radio" => "Choice Grid",
         "grid_checkbox" => "Checkbox Grid",
+        "grid_text" => "Text Grid",
         "title" => "Title",
         "section" => "Section",
         "file" => "Upload File",
@@ -266,6 +269,18 @@
     void SortColumns()
     {
         Field.GridColumns = Field.GridColumns.OrderBy(o => o, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    async Task AddRow()
+    {
+        Field.GridRows.Add(string.Empty);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task AddColumn()
+    {
+        Field.GridColumns.Add(string.Empty);
+        await InvokeAsync(StateHasChanged);
     }
 
     async Task AddOption()

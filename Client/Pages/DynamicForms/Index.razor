@@ -53,6 +53,7 @@
                 <div class="draggable-field" draggable="true" data-type="scale"><span class="material-icons me-1">linear_scale</span> Linear Scale</div>
                 <div class="draggable-field" draggable="true" data-type="grid_radio"><span class="material-icons me-1">grid_on</span> Choice Grid</div>
                 <div class="draggable-field" draggable="true" data-type="grid_checkbox"><span class="material-icons me-1">grid_view</span> Checkbox Grid</div>
+                <div class="draggable-field" draggable="true" data-type="grid_text"><span class="material-icons me-1">border_all</span> Text Grid</div>
                 <div class="draggable-field" draggable="true" data-type="file"><span class="material-icons me-1">upload_file</span> Upload File</div>
                 <div class="draggable-field" draggable="true" data-type="image"><span class="material-icons me-1">image</span> Image</div>
                 <div class="draggable-field" draggable="true" data-type="statictext"><span class="material-icons me-1">text_fields</span> Text</div>
@@ -170,17 +171,8 @@
 }
 else
 {
-    <div class="row">
-        <div class="col-md-3" style="position:sticky;top:75px;max-height:calc(100vh - 90px);overflow-y:auto;">
-            <div class="mb-3">
-                <h5 class="mb-0">Toolbox</h5>
-            </div>
-        </div>
-        <div class="col-md-9">
-            <div class="card p-3 shadow-sm">
-                <LivePreview Sections="sections" FormName="@formName" />
-            </div>
-        </div>
+    <div class="card p-3 shadow-sm">
+        <LivePreview Sections="sections" FormName="@formName" />
     </div>
 }
 
@@ -627,7 +619,7 @@ else
                 return;
             }
 
-            if ((f.FieldType == "grid_radio" || f.FieldType == "grid_checkbox") &&
+            if ((f.FieldType == "grid_radio" || f.FieldType == "grid_checkbox" || f.FieldType == "grid_text") &&
                 (!f.GridRows.Any(r => !string.IsNullOrWhiteSpace(r)) || !f.GridColumns.Any(c => !string.IsNullOrWhiteSpace(c))))
             {
                 NotificationService.Notify(new NotificationMessage
