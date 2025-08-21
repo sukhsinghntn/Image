@@ -158,6 +158,88 @@ else
                         }
                         break;
 
+                    case "grid_radio":
+                    case "grid_checkbox":
+                        var gridOpts = JsonSerializer.Deserialize<GridOptions>(fld.OptionsJson ?? "{}");
+                        var rows = gridOpts?.Rows ?? new List<string>();
+                        var cols = gridOpts?.Columns ?? new List<string>();
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    @foreach (var col in cols)
+                                    {
+                                        <th>@col</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in rows)
+                                {
+                                    <tr>
+                                        <td><strong>@row</strong></td>
+                                        @foreach (var col in cols)
+                                        {
+                                            <td>
+                                                @if (fld.FieldType == "grid_radio")
+                                                {
+                                                    <input type="radio"
+                                                           name="@($"{fld.Key}-{row}")"
+                                                           checked="@(GetGridRadioValue(fld.Key, row) == col)"
+                                                           @onchange="() => OnGridRadioChanged(fld.Key, row, col)" />
+                                                }
+                                                else
+                                                {
+                                                    <input type="checkbox"
+                                                           checked="@IsGridCheckboxChecked(fld.Key, row, col)"
+                                                           @onchange="e => OnGridCheckboxChanged(fld.Key, row, col, e)" />
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        break;
+
+                    case "grid_text":
+                        var textOpts = JsonSerializer.Deserialize<GridTextOptions>(fld.OptionsJson ?? "{}");
+                        var textCols = textOpts?.Columns ?? new List<string>();
+                        EnsureTextGrid(fld.Key, textCols.Count);
+                        var grid = (List<List<string>>)responseData[fld.Key];
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    @foreach (var col in textCols)
+                                    {
+                                        <th>@col</th>
+                                    }
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < grid.Count; i++)
+                                {
+                                    <tr>
+                                        @for (int j = 0; j < textCols.Count; j++)
+                                        {
+                                            <td>
+                                                <input class="form-control"
+                                                       value="@grid[i][j]"
+                                                       @onchange="e => OnTextGridChanged(fld.Key, i, j, e)" />
+                                            </td>
+                                        }
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger" type="button"
+                                                    @onclick="() => RemoveTextGridRow(fld.Key, i)">×</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <button class="btn btn-sm btn-outline-primary" type="button" @onclick="() => AddTextGridRow(fld.Key, textCols.Count)">Add Row</button>
+                        break;
+
                     case "file":
                         <InputFile OnChange="e => OnFileUploadChanged(fld.Key, e)" />
                         @if (responseData.ContainsKey(fld.Key))
@@ -298,6 +380,9 @@ else
                 responseData[fld.Key] = fld.FieldType switch
                 {
                     "checkbox" => new List<string>(),
+                    "grid_checkbox" => new Dictionary<string, List<string>>(),
+                    "grid_radio" => new Dictionary<string, string>(),
+                    "grid_text" => new List<List<string>>(),
                     "number" => (object?)null,
                     "date" => (object?)null,
                     "time" => (object?)null,
@@ -430,6 +515,94 @@ else
         }
     }
 
+    string GetGridRadioValue(string key, string row)
+    {
+        if (responseData.TryGetValue(key, out var val) && val is Dictionary<string, string> dict && dict.TryGetValue(row, out var sel))
+            return sel;
+        return string.Empty;
+    }
+
+    void OnGridRadioChanged(string key, string row, string col)
+    {
+        if (!responseData.TryGetValue(key, out var val) || val is not Dictionary<string, string> dict)
+        {
+            dict = new Dictionary<string, string>();
+            responseData[key] = dict;
+        }
+        dict[row] = col;
+    }
+
+    bool IsGridCheckboxChecked(string key, string row, string col)
+    {
+        return responseData.TryGetValue(key, out var val) &&
+               val is Dictionary<string, List<string>> dict &&
+               dict.TryGetValue(row, out var list) &&
+               list.Contains(col);
+    }
+
+    void OnGridCheckboxChanged(string key, string row, string col, ChangeEventArgs e)
+    {
+        if (!responseData.TryGetValue(key, out var val) || val is not Dictionary<string, List<string>> dict)
+        {
+            dict = new Dictionary<string, List<string>>();
+            responseData[key] = dict;
+        }
+        if (!dict.TryGetValue(row, out var list))
+        {
+            list = new List<string>();
+            dict[row] = list;
+        }
+        if ((bool?)e.Value == true)
+        {
+            if (!list.Contains(col)) list.Add(col);
+        }
+        else
+        {
+            list.Remove(col);
+        }
+    }
+
+    void EnsureTextGrid(string key, int cols)
+    {
+        if (!responseData.TryGetValue(key, out var val) || val is not List<List<string>> list)
+        {
+            list = new List<List<string>>();
+            responseData[key] = list;
+        }
+
+        foreach (var row in list)
+        {
+            while (row.Count < cols)
+                row.Add(string.Empty);
+        }
+    }
+
+    void AddTextGridRow(string key, int cols)
+    {
+        EnsureTextGrid(key, cols);
+        var list = (List<List<string>>)responseData[key];
+        list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+    }
+
+    void RemoveTextGridRow(string key, int index)
+    {
+        if (!responseData.TryGetValue(key, out var val) || val is not List<List<string>> list)
+            return;
+        if (index >= 0 && index < list.Count)
+            list.RemoveAt(index);
+    }
+
+    void OnTextGridChanged(string key, int row, int col, ChangeEventArgs e)
+    {
+        if (!responseData.TryGetValue(key, out var val) || val is not List<List<string>> list)
+            return;
+
+        if (row < 0 || row >= list.Count || col < 0 || col >= list[row].Count)
+            return;
+
+        list[row][col] = e.Value?.ToString() ?? string.Empty;
+    }
+
     private async Task OnFileUploadChanged(string key, InputFileChangeEventArgs e)
     {
         var file = e.File;
@@ -536,7 +709,21 @@ else
         if (value == null) return true;
         if (value is string s) return string.IsNullOrWhiteSpace(s);
         if (value is IEnumerable<string> list) return !list.Any();
+        if (value is Dictionary<string, string> d1) return d1.Values.All(string.IsNullOrWhiteSpace);
+        if (value is Dictionary<string, List<string>> d2) return d2.Values.All(v => v.Count == 0);
+        if (value is List<List<string>> grid) return grid.All(r => r.All(string.IsNullOrWhiteSpace));
         return false;
+    }
+
+    private class GridOptions
+    {
+        public List<string>? Rows { get; set; }
+        public List<string>? Columns { get; set; }
+    }
+
+    private class GridTextOptions
+    {
+        public List<string>? Columns { get; set; }
     }
 
     private class FileUploadResult
