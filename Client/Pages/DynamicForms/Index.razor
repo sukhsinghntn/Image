@@ -550,11 +550,31 @@ else
                     var opts = f.OptionItems.Where(o => !string.IsNullOrWhiteSpace(o)).ToList();
                     var rowsList = f.GridRows.Where(o => !string.IsNullOrWhiteSpace(o)).ToList();
                     var colsList = f.GridColumns.Where(o => !string.IsNullOrWhiteSpace(o)).ToList();
-                    string? optionsJson = opts.Count > 0 ? JsonSerializer.Serialize(opts)
-                        : rowsList.Count > 0 || colsList.Count > 0 ? JsonSerializer.Serialize(new { Rows = rowsList, Columns = colsList })
-                        : f.FieldType == "scale" ? JsonSerializer.Serialize(new { Min = f.ScaleMin, Max = f.ScaleMax })
-                        : !string.IsNullOrWhiteSpace(f.Instructions) ? JsonSerializer.Serialize(new { Instructions = f.Instructions })
-                        : null;
+                    string? optionsJson;
+                    if (opts.Count > 0)
+                    {
+                        optionsJson = JsonSerializer.Serialize(opts);
+                    }
+                    else if (f.FieldType == "grid_text")
+                    {
+                        optionsJson = colsList.Count > 0 ? JsonSerializer.Serialize(new { Columns = colsList }) : null;
+                    }
+                    else if (f.FieldType == "grid_radio" || f.FieldType == "grid_checkbox")
+                    {
+                        optionsJson = (rowsList.Count > 0 && colsList.Count > 0) ? JsonSerializer.Serialize(new { Rows = rowsList, Columns = colsList }) : null;
+                    }
+                    else if (f.FieldType == "scale")
+                    {
+                        optionsJson = JsonSerializer.Serialize(new { Min = f.ScaleMin, Max = f.ScaleMax });
+                    }
+                    else if (!string.IsNullOrWhiteSpace(f.Instructions))
+                    {
+                        optionsJson = JsonSerializer.Serialize(new { Instructions = f.Instructions });
+                    }
+                    else
+                    {
+                        optionsJson = null;
+                    }
                     list.Add(new
                     {
                         f.Key,
@@ -619,7 +639,7 @@ else
                 return;
             }
 
-            if ((f.FieldType == "grid_radio" || f.FieldType == "grid_checkbox" || f.FieldType == "grid_text") &&
+            if ((f.FieldType == "grid_radio" || f.FieldType == "grid_checkbox") &&
                 (!f.GridRows.Any(r => !string.IsNullOrWhiteSpace(r)) || !f.GridColumns.Any(c => !string.IsNullOrWhiteSpace(c))))
             {
                 NotificationService.Notify(new NotificationMessage
@@ -627,6 +647,16 @@ else
                     Severity = NotificationSeverity.Warning,
                     Summary = "Options Required",
                     Detail = $"Add at least one row and column for '{f.Label}'."
+                });
+                return;
+            }
+            if (f.FieldType == "grid_text" && !f.GridColumns.Any(c => !string.IsNullOrWhiteSpace(c)))
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Warning,
+                    Summary = "Options Required",
+                    Detail = $"Add at least one column for '{f.Label}'."
                 });
                 return;
             }

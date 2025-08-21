@@ -160,7 +160,6 @@ else
 
                     case "grid_radio":
                     case "grid_checkbox":
-                    case "grid_text":
                         var gridOpts = JsonSerializer.Deserialize<GridOptions>(fld.OptionsJson ?? "{}") ?? new();
                         <table class="table table-bordered table-sm">
                             <thead>
@@ -187,17 +186,11 @@ else
                                                            checked="@GetGridRadioChecked(fld.Key, row, col)"
                                                            @onchange="() => OnGridRadioChanged(fld.Key, row, col)" />
                                                 }
-                                                else if (fld.FieldType == "grid_checkbox")
+                                                else
                                                 {
                                                     <input type="checkbox"
                                                            checked="@GetGridCheckboxChecked(fld.Key, row, col)"
                                                            @onchange="e => OnGridCheckboxChanged(fld.Key, row, col, e)" />
-                                                }
-                                                else
-                                                {
-                                                    <input type="text" class="form-control"
-                                                           value="@GetGridTextValue(fld.Key, row, col)"
-                                                           @onchange="e => OnGridTextChanged(fld.Key, row, col, e)" />
                                                 }
                                             </td>
                                         }
@@ -205,6 +198,40 @@ else
                                 }
                             </tbody>
                         </table>
+                        break;
+                    case "grid_text":
+                        var textGrid = JsonSerializer.Deserialize<GridOptions>(fld.OptionsJson ?? "{}") ?? new();
+                        var rows = GetTextGridRows(fld.Key);
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    @foreach (var col in textGrid.Columns)
+                                    {
+                                        <th>@col</th>
+                                    }
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < rows.Count; i++)
+                                {
+                                    <tr>
+                                        @foreach (var col in textGrid.Columns)
+                                        {
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                       value="@GetTextGridValue(fld.Key, i, col)"
+                                                       @onchange="e => OnTextGridChanged(fld.Key, i, col, e)" />
+                                            </td>
+                                        }
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveTextGridRow(fld.Key, i)">×</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => AddTextGridRow(fld.Key)">+ Add Row</button>
                         break;
 
                     case "file":
@@ -349,7 +376,7 @@ else
                     "checkbox" => new List<string>(),
                     "grid_radio" => new Dictionary<string, string>(),
                     "grid_checkbox" => new Dictionary<string, List<string>>(),
-                    "grid_text" => new Dictionary<string, Dictionary<string, string>>(),
+                    "grid_text" => new List<Dictionary<string, string>> { new Dictionary<string, string>() },
                     "number" => (object?)null,
                     "date" => (object?)null,
                     "time" => (object?)null,
@@ -492,13 +519,6 @@ else
         obj is Dictionary<string, List<string>> map &&
         map.TryGetValue(row, out var list) && list.Contains(column);
 
-    string GetGridTextValue(string key, string row, string column) =>
-        responseData.TryGetValue(key, out var obj) &&
-        obj is Dictionary<string, Dictionary<string, string>> map &&
-        map.TryGetValue(row, out var rowMap) && rowMap.TryGetValue(column, out var val)
-            ? val
-            : string.Empty;
-
     void OnGridRadioChanged(string key, string row, string column)
     {
         if (responseData[key] is not Dictionary<string, string> map)
@@ -526,16 +546,39 @@ else
         }
     }
 
-    void OnGridTextChanged(string key, string row, string column, ChangeEventArgs e)
+    List<Dictionary<string, string>> GetTextGridRows(string key)
     {
-        if (responseData[key] is not Dictionary<string, Dictionary<string, string>> map)
-            responseData[key] = map = new();
-        if (!map.TryGetValue(row, out var rowMap))
-        {
-            rowMap = new();
-            map[row] = rowMap;
-        }
-        rowMap[column] = e.Value?.ToString() ?? string.Empty;
+        if (responseData[key] is List<Dictionary<string, string>> list)
+            return list;
+        var newList = new List<Dictionary<string, string>> { new Dictionary<string, string>() };
+        responseData[key] = newList;
+        return newList;
+    }
+
+    string GetTextGridValue(string key, int rowIndex, string column)
+    {
+        var rows = GetTextGridRows(key);
+        return rowIndex < rows.Count && rows[rowIndex].TryGetValue(column, out var val) ? val : string.Empty;
+    }
+
+    void OnTextGridChanged(string key, int rowIndex, string column, ChangeEventArgs e)
+    {
+        var rows = GetTextGridRows(key);
+        while (rows.Count <= rowIndex)
+            rows.Add(new Dictionary<string, string>());
+        rows[rowIndex][column] = e.Value?.ToString() ?? string.Empty;
+    }
+
+    void AddTextGridRow(string key)
+    {
+        GetTextGridRows(key).Add(new Dictionary<string, string>());
+    }
+
+    void RemoveTextGridRow(string key, int index)
+    {
+        var rows = GetTextGridRows(key);
+        if (index >= 0 && index < rows.Count)
+            rows.RemoveAt(index);
     }
 
     private async Task OnFileUploadChanged(string key, InputFileChangeEventArgs e)
