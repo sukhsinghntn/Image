@@ -351,10 +351,11 @@ namespace DynamicFormsApp.Server.Services
                         _ => je.GetRawText(),
                     };
                 }
-                else if (raw is System.Collections.IEnumerable enumerable && raw is not string)
+                else if (raw is System.Collections.IEnumerable && raw is not string)
                 {
                     // Serialize collections (e.g., text grid rows) to JSON strings
-                    raw = JsonSerializer.Serialize(enumerable);
+                    // Use the runtime type so nested lists are preserved
+                    raw = JsonSerializer.Serialize(raw);
                 }
 
                 sqlParams.Add(new SqlParameter($"@p{idx}", raw ?? DBNull.Value));

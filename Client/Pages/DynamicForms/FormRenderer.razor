@@ -564,10 +564,22 @@ else
             data = new List<List<string>>();
             responseData[key] = data;
         }
+
+        // Ensure at least one row exists with the configured column count
         if (data.Count == 0)
         {
             data.Add(Enumerable.Repeat(string.Empty, cols).ToList());
         }
+
+        // Pad existing rows to match the expected column count
+        foreach (var row in data)
+        {
+            while (row.Count < cols)
+            {
+                row.Add(string.Empty);
+            }
+        }
+
         return data;
     }
 
@@ -587,8 +599,23 @@ else
 
     void OnTextGridChanged(string key, int row, int col, ChangeEventArgs e)
     {
+        // Retrieve existing data and expand rows/columns as needed
         var data = GetTextGridData(key, col + 1);
-        data[row][col] = e.Value?.ToString() ?? string.Empty;
+
+        while (data.Count <= row)
+        {
+            // Mirror the column count of the first row for new rows
+            var cols = data[0].Count;
+            data.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+        }
+
+        var rowList = data[row];
+        while (rowList.Count <= col)
+        {
+            rowList.Add(string.Empty);
+        }
+
+        rowList[col] = e.Value?.ToString() ?? string.Empty;
     }
 
     private async Task OnFileUploadChanged(string key, InputFileChangeEventArgs e)
