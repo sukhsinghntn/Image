@@ -212,7 +212,15 @@ else
         OnSectionRestrictionChanged();
     }
 
-    void TogglePreview() => isPreviewMode = !isPreviewMode;
+    void TogglePreview()
+    {
+        isPreviewMode = !isPreviewMode;
+        if (isPreviewMode)
+        {
+            objRef?.Dispose();
+            objRef = null;
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -230,12 +238,12 @@ else
             notificationEmail = currentUser?.Email ?? string.Empty;
             deptOptions = await UserService.GetDepartments();
             locOptions = await UserService.GetLocations();
-            objRef ??= DotNetObjectReference.Create(this);
         }
 
         if (!isPreviewMode)
         {
-            objRef ??= DotNetObjectReference.Create(this);
+            objRef?.Dispose();
+            objRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("initSectionSortable", "#sections-container", objRef);
             for (int i = 0; i < sections.Count; i++)
             {
@@ -714,5 +722,6 @@ else
     public void Dispose()
     {
         objRef?.Dispose();
+        objRef = null;
     }
 }
