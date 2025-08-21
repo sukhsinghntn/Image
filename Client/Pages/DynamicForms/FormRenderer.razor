@@ -600,7 +600,33 @@ else
     {
         if (!responseData.TryGetValue(key, out var val) || val is not List<List<string>> list)
             return;
-        list[row][col] = e.Value?.ToString() ?? string.Empty;
+
+        if (row < 0 || col < 0)
+            return;
+
+        int cols = list.Count > 0 ? list[0].Count : col + 1;
+
+        // Ensure the requested row exists with the expected number of columns
+        while (list.Count <= row)
+        {
+            list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+        }
+
+        var rowList = list[row];
+
+        // Ensure the row has all expected columns
+        while (rowList.Count < cols)
+        {
+            rowList.Add(string.Empty);
+        }
+
+        // Grow further if a higher column index is requested
+        while (rowList.Count <= col)
+        {
+            rowList.Add(string.Empty);
+        }
+
+        rowList[col] = e.Value?.ToString() ?? string.Empty;
     }
 
     private async Task OnFileUploadChanged(string key, InputFileChangeEventArgs e)
