@@ -158,6 +158,48 @@ else
                             </div>
                         }
                         break;
+                    case "grid_radio":
+                    case "grid_checkbox":
+                        var isRadio = fld.FieldType == "grid_radio";
+                        var radioVals = gridRadioValues.ContainsKey(fld.Key) ? gridRadioValues[fld.Key] : new();
+                        var chkVals = gridCheckboxValues.ContainsKey(fld.Key) ? gridCheckboxValues[fld.Key] : new();
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    @foreach (var col in fld.GridColumns)
+                                    {
+                                        <th>@col</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var gridRow in fld.GridRows)
+                                {
+                                    <tr>
+                                        <td><strong>@gridRow</strong></td>
+                                        @foreach (var col in fld.GridColumns)
+                                        {
+                                            <td>
+                                                @if (isRadio)
+                                                {
+                                                    <input type="radio" name="@($"grid-{fld.Key}-{gridRow}")"
+                                                           checked="@(radioVals.TryGetValue(gridRow, out var sel) && sel == col)"
+                                                           @onchange="() => OnGridRadioChanged(fld.Key, gridRow, col)" />
+                                                }
+                                                else
+                                                {
+                                                    var selected = chkVals.TryGetValue(gridRow, out var list) && list.Contains(col);
+                                                    <input type="checkbox" checked="@selected"
+                                                           @onchange="e => OnGridCheckboxChanged(fld.Key, gridRow, col, (bool)e.Value)" />
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        break;
                     case "grid_text":
                         EnsureTextGrid(fld);
                         var rows = textGridValues[fld.Key];
@@ -177,7 +219,7 @@ else
                                     <tr>
                                         @for (int c = 0; c < fld.GridColumns.Count; c++)
                                         {
-                                            <td><input class="form-control" @bind-value="rows[r][c]" @bind-value:after="() => OnTextGridChanged(fld.Key)" /></td>
+                                            <td><input class="form-control" @bind="rows[r][c]" @bind:event="oninput" @bind:after="() => OnTextGridChanged(fld.Key)" /></td>
                                         }
                                         <td>
                                             <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => { RemoveTextRow(fld.Key, r); OnTextGridChanged(fld.Key); }">×</button>
@@ -275,6 +317,8 @@ else
     private DeletedFormInfo? unavailableInfo;
 
     private Dictionary<string, List<List<string>>> textGridValues = new();
+    private Dictionary<string, Dictionary<string, string>> gridRadioValues = new();
+    private Dictionary<string, Dictionary<string, List<string>>> gridCheckboxValues = new();
 
     string GetImageStyle(FormField f) =>
         $"max-width:100%;{(f.ImageWidth.HasValue ? $"width:{f.ImageWidth}px;" : string.Empty)}{(f.ImageHeight.HasValue ? $"height:{f.ImageHeight}px;" : string.Empty)}";
@@ -353,6 +397,18 @@ else
                         Enumerable.Repeat(string.Empty, fld.GridColumns.Count).ToList()
                     };
                     responseData[fld.Key] = JsonSerializer.Serialize(textGridValues[fld.Key]);
+                }
+                else if (fld.FieldType == "grid_radio")
+                {
+                    var rows = fld.GridRows.ToDictionary(r => r, r => string.Empty);
+                    gridRadioValues[fld.Key] = rows;
+                    responseData[fld.Key] = JsonSerializer.Serialize(rows);
+                }
+                else if (fld.FieldType == "grid_checkbox")
+                {
+                    var rows = fld.GridRows.ToDictionary(r => r, r => new List<string>());
+                    gridCheckboxValues[fld.Key] = rows;
+                    responseData[fld.Key] = JsonSerializer.Serialize(rows);
                 }
                 else
                 {
@@ -489,6 +545,33 @@ else
         else
         {
             list.Remove(option);
+        }
+    }
+
+    void OnGridRadioChanged(string key, string row, string col)
+    {
+        if (gridRadioValues.TryGetValue(key, out var rows))
+        {
+            rows[row] = col;
+            responseData[key] = JsonSerializer.Serialize(rows);
+        }
+    }
+
+    void OnGridCheckboxChanged(string key, string row, string col, bool isChecked)
+    {
+        if (gridCheckboxValues.TryGetValue(key, out var rows))
+        {
+            var list = rows[row];
+            if (isChecked)
+            {
+                if (!list.Contains(col))
+                    list.Add(col);
+            }
+            else
+            {
+                list.Remove(col);
+            }
+            responseData[key] = JsonSerializer.Serialize(rows);
         }
     }
 
