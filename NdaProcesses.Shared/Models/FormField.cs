@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DynamicFormsApp.Shared.Models
 {
@@ -16,6 +17,10 @@ namespace DynamicFormsApp.Shared.Models
 
         // Optional: for dropdowns, checkboxes, grids, etc.
         public string? OptionsJson { get; set; }
+
+        // Parsed grid options
+        public List<string> GridRows { get; set; } = new();
+        public List<string> GridColumns { get; set; } = new();
 
         public string? ImageUrl { get; set; }
         public int? ImageWidth { get; set; }
