@@ -125,6 +125,33 @@
                                 </tbody>
                             </table>
                             break;
+                        case "grid_text":
+                            EnsureTextGrid(field);
+                            <table class="table table-bordered table-sm">
+                                <thead>
+                                    <tr>
+                                        @foreach (var col in field.GridColumns)
+                                        {
+                                            <th>@col</th>
+                                        }
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < textGridValues[field.Key].Count; i++)
+                                    {
+                                        <tr>
+                                            @for (int j = 0; j < field.GridColumns.Count; j++)
+                                            {
+                                                <td><input class="form-control" /></td>
+                                            }
+                                            <td><button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveTextGridRow(field, i)">×</button></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => AddTextGridRow(field)">Add Row</button>
+                            break;
                         case "file":
                             <input type="file" class="form-control" />
                             break;
@@ -154,6 +181,31 @@
 @code {
     [Parameter] public List<DesignerSection> Sections { get; set; } = new();
     [Parameter] public string? FormName { get; set; }
+
+    Dictionary<string, List<List<string>>> textGridValues = new();
+
+    void EnsureTextGrid(DesignerField field)
+    {
+        if (!textGridValues.ContainsKey(field.Key))
+        {
+            textGridValues[field.Key] = new List<List<string>> { new List<string>(new string[field.GridColumns.Count]) };
+        }
+    }
+
+    void AddTextGridRow(DesignerField field)
+    {
+        EnsureTextGrid(field);
+        textGridValues[field.Key].Add(new List<string>(new string[field.GridColumns.Count]));
+    }
+
+    void RemoveTextGridRow(DesignerField field, int index)
+    {
+        EnsureTextGrid(field);
+        if (index >= 0 && index < textGridValues[field.Key].Count)
+            textGridValues[field.Key].RemoveAt(index);
+        if (textGridValues[field.Key].Count == 0)
+            AddTextGridRow(field);
+    }
 
     string GetImageStyle(DesignerField f) =>
         $"max-width:100%;{(f.ImageWidth.HasValue ? $"width:{f.ImageWidth}px;" : string.Empty)}{(f.ImageHeight.HasValue ? $"height:{f.ImageHeight}px;" : string.Empty)}";
