@@ -237,6 +237,7 @@ else
                                 }
                             </tbody>
                         </table>
+                        <button class="btn btn-sm btn-outline-primary" type="button" @onclick="() => AddTextGridRow(fld.Key, textCols.Count)">Add Row</button>
                         break;
 
                     case "file":
@@ -569,13 +570,20 @@ else
             responseData[key] = list;
         }
 
+        if (list.Count == 0)
+            list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+
         foreach (var row in list)
         {
             while (row.Count < cols)
                 row.Add(string.Empty);
         }
+    }
 
-        list.RemoveAll(r => r.All(string.IsNullOrEmpty));
+    void AddTextGridRow(string key, int cols)
+    {
+        EnsureTextGrid(key, cols);
+        var list = (List<List<string>>)responseData[key];
         list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
     }
 
@@ -585,7 +593,8 @@ else
             return;
         if (index >= 0 && index < list.Count)
             list.RemoveAt(index);
-        EnsureTextGrid(key, cols);
+        if (list.Count == 0)
+            list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
     }
 
     void OnTextGridChanged(string key, int row, int col, ChangeEventArgs e)
@@ -616,8 +625,6 @@ else
         }
 
         rowList[col] = e.Value?.ToString() ?? string.Empty;
-
-        EnsureTextGrid(key, cols);
     }
 
     private async Task OnFileUploadChanged(string key, InputFileChangeEventArgs e)
