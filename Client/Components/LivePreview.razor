@@ -151,6 +151,7 @@
                                         }
                                     </tbody>
                                 </table>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-1" @onclick="() => AddTextGridRow(field)">Add row</button>
                             }
                             break;
                         case "file":
@@ -221,6 +222,12 @@
         }
     }
 
+    void AddTextGridRow(DesignerField field)
+    {
+        var rows = GetTextGridData(field);
+        rows.Add(Enumerable.Repeat(string.Empty, field.GridColumns.Count).ToList());
+    }
+
     void OnTextGridChanged(DesignerField field, int row, int col, ChangeEventArgs e)
     {
         var rows = GetTextGridData(field);
@@ -238,11 +245,6 @@
         }
 
         rowList[col] = e.Value?.ToString() ?? string.Empty;
-
-        if (col == 0 && row == rows.Count - 1 && !string.IsNullOrWhiteSpace(rowList[0]))
-        {
-            rows.Add(Enumerable.Repeat(string.Empty, rowList.Count).ToList());
-        }
 
         for (int i = rows.Count - 1; i > 0; i--)
         {
