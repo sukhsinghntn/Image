@@ -305,12 +305,15 @@ namespace DynamicFormsApp.Server.Services
 
         public async Task<Form> StoreResponseAsync(int formId, Dictionary<string, object> values, string? responderName = null)
         {
-            var form = await _db.Forms.FindAsync(formId)
-                       ?? throw new InvalidOperationException("Form not found");
+            var form = await _db.Forms
+                .Include(f => f.Fields)
+                .FirstOrDefaultAsync(f => f.Id == formId)
+                ?? throw new InvalidOperationException("Form not found");
             if (!form.IsActive)
             {
                 throw new InvalidOperationException("Form inactive");
             }
+
             var rawName = SanitizeKey(form.Name);
             var tableName = $"Form_{formId}_{rawName}";
 
@@ -324,8 +327,7 @@ namespace DynamicFormsApp.Server.Services
                 .ToDictionary(k => k.Key, v => v.Value);
 
             var cols = string.Join(", ", filtered.Keys.Select(k => $"[{k}]"));
-            var paramNames = string.Join(", ",
-                filtered.Keys.Select((k, i) => $"@p{i}"));
+            var paramNames = string.Join(", ", filtered.Keys.Select((k, i) => $"@p{i}"));
 
             var sqlParams = new List<SqlParameter>();
             int idx = 0;
@@ -334,26 +336,69 @@ namespace DynamicFormsApp.Server.Services
                 object raw = kv.Value;
                 if (raw is JsonElement je)
                 {
-                    raw = je.ValueKind switch
+                    if (je.ValueKind == JsonValueKind.Array)
                     {
-                        JsonValueKind.String => je.GetString(),
-                        JsonValueKind.Number when je.TryGetInt64(out var l) => l,
-                        JsonValueKind.Number when je.TryGetDouble(out var d) => d,
-                        JsonValueKind.True => true,
-                        JsonValueKind.False => false,
-                        JsonValueKind.Array => je.GetRawText(), // Store JSON string for arrays
-                        JsonValueKind.Object => je.GetRawText(),
-                        JsonValueKind.Null => null,
-                        _ => je.GetRawText(),
-                    };
+                        try
+                        {
+                            var nested = JsonSerializer.Deserialize<List<List<string>>>(je.GetRawText()) ?? new();
+                            nested = nested
+                                .Where(row => row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
+                                .Select(row => row.Select(cell => cell ?? string.Empty).ToList())
+                                .ToList();
+                            raw = JsonSerializer.Serialize(nested);
+                        }
+                        catch
+                        {
+                            raw = je.GetRawText();
+                        }
+                    }
+                    else if (je.ValueKind == JsonValueKind.Object)
+                    {
+                        raw = je.GetRawText();
+                    }
+                    else if (je.ValueKind == JsonValueKind.String)
+                    {
+                        raw = je.GetString();
+                    }
+                    else if (je.ValueKind == JsonValueKind.Number && je.TryGetInt64(out var l))
+                    {
+                        raw = l;
+                    }
+                    else if (je.ValueKind == JsonValueKind.Number && je.TryGetDouble(out var d))
+                    {
+                        raw = d;
+                    }
+                    else if (je.ValueKind == JsonValueKind.True)
+                    {
+                        raw = true;
+                    }
+                    else if (je.ValueKind == JsonValueKind.False)
+                    {
+                        raw = false;
+                    }
+                    else if (je.ValueKind == JsonValueKind.Null)
+                    {
+                        raw = null;
+                    }
+                    else
+                    {
+                        raw = je.GetRawText();
+                    }
                 }
-
-                if (raw is List<string> stringList)
+                else if (raw is List<string> stringList)
                 {
                     raw = JsonSerializer.Serialize(stringList);
                 }
+                else if (raw is List<List<string>> nestedList)
+                {
+                    var cleaned = nestedList
+                        .Where(row => row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
+                        .Select(row => row.Select(cell => cell ?? string.Empty).ToList())
+                        .ToList();
+                    raw = JsonSerializer.Serialize(cleaned);
+                }
 
-                sqlParams.Add(new SqlParameter($"@p{idx}", raw ?? DBNull.Value));
+                sqlParams.Add(new SqlParameter($"@p{idx}", raw ?? (object)DBNull.Value));
                 idx++;
             }
 
@@ -721,6 +766,7 @@ namespace DynamicFormsApp.Server.Services
             "textarea" => "NVARCHAR(MAX)",
             "grid_radio" => "NVARCHAR(MAX)",    // JSON object
             "grid_checkbox" => "NVARCHAR(MAX)", // JSON object
+            "grid_text" => "NVARCHAR(MAX)",     // JSON array
             "scale" => "INT",
             _ => "NVARCHAR(MAX)"
         };

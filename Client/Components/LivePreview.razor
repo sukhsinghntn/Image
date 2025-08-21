@@ -125,6 +125,35 @@
                                 </tbody>
                             </table>
                             break;
+                        case "grid_text":
+                            {
+                                var rows = GetTextGridData(field);
+                                <table class="table table-bordered table-sm">
+                                    <thead>
+                                        <tr>
+                                            @foreach (var col in field.GridColumns)
+                                            {
+                                                <th>@col</th>
+                                            }
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int r = 0; r < rows.Count; r++)
+                                        {
+                                            <tr>
+                                                @for (int c = 0; c < field.GridColumns.Count; c++)
+                                                {
+                                                    <td><input class="form-control" value="@rows[r][c]" @oninput="e => OnTextGridChanged(field, r, c, e)" /></td>
+                                                }
+                                                <td><button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveTextGridRow(field, r)">×</button></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-1" @onclick="() => AddTextGridRow(field)">Add row</button>
+                            }
+                            break;
                         case "file":
                             <input type="file" class="form-control" />
                             break;
@@ -154,6 +183,66 @@
 @code {
     [Parameter] public List<DesignerSection> Sections { get; set; } = new();
     [Parameter] public string? FormName { get; set; }
+
+    Dictionary<DesignerField, List<List<string>>> textGridData = new();
+
+    List<List<string>> GetTextGridData(DesignerField field)
+    {
+        if (!textGridData.TryGetValue(field, out var data))
+        {
+            data = new List<List<string>>();
+            textGridData[field] = data;
+        }
+
+        var cols = field.GridColumns.Count;
+        if (data.Count == 0)
+        {
+            data.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+        }
+
+        foreach (var row in data)
+        {
+            while (row.Count < cols)
+            {
+                row.Add(string.Empty);
+            }
+        }
+
+        return data;
+    }
+
+    void RemoveTextGridRow(DesignerField field, int index)
+    {
+        var rows = GetTextGridData(field);
+        if (index >= 0 && index < rows.Count)
+        {
+            rows.RemoveAt(index);
+        }
+    }
+
+    void AddTextGridRow(DesignerField field)
+    {
+        var rows = GetTextGridData(field);
+        rows.Add(Enumerable.Repeat(string.Empty, field.GridColumns.Count).ToList());
+    }
+
+    void OnTextGridChanged(DesignerField field, int row, int col, ChangeEventArgs e)
+    {
+        var rows = GetTextGridData(field);
+
+        if (row < 0 || row >= rows.Count)
+        {
+            return;
+        }
+
+        var rowList = rows[row];
+        while (rowList.Count <= col)
+        {
+            rowList.Add(string.Empty);
+        }
+
+        rowList[col] = e.Value?.ToString() ?? string.Empty;
+    }
 
     string GetImageStyle(DesignerField f) =>
         $"max-width:100%;{(f.ImageWidth.HasValue ? $"width:{f.ImageWidth}px;" : string.Empty)}{(f.ImageHeight.HasValue ? $"height:{f.ImageHeight}px;" : string.Empty)}";
