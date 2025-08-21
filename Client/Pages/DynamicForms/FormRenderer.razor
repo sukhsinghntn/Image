@@ -234,7 +234,6 @@ else
                                 }
                             </tbody>
                         </table>
-                        <button class="btn btn-sm btn-outline-primary" type="button" @onclick="() => AddTextGridRow(fld.Key, txtCols.Count)">+ Add Row</button>
                         break;
 
                     case "file":
@@ -583,18 +582,17 @@ else
         return data;
     }
 
-    void AddTextGridRow(string key, int cols)
-    {
-        var data = GetTextGridData(key, cols);
-        data.Add(Enumerable.Repeat(string.Empty, cols).ToList());
-    }
-
     void RemoveTextGridRow(string key, int index)
     {
         if (responseData.TryGetValue(key, out var obj) && obj is List<List<string>> data && index >= 0 && index < data.Count)
         {
             data.RemoveAt(index);
         }
+    }
+
+    bool IsTextGridRowEmpty(List<string> row)
+    {
+        return row.All(string.IsNullOrWhiteSpace);
     }
 
     void OnTextGridChanged(string key, int row, int col, ChangeEventArgs e)
@@ -616,6 +614,23 @@ else
         }
 
         rowList[col] = e.Value?.ToString() ?? string.Empty;
+
+        if (col == 0 && row == data.Count - 1 && !string.IsNullOrWhiteSpace(rowList[0]))
+        {
+            data.Add(Enumerable.Repeat(string.Empty, rowList.Count).ToList());
+        }
+
+        for (int i = data.Count - 1; i > 0; i--)
+        {
+            if (IsTextGridRowEmpty(data[i]) && IsTextGridRowEmpty(data[i - 1]))
+            {
+                data.RemoveAt(i);
+            }
+            else if (!IsTextGridRowEmpty(data[i]))
+            {
+                break;
+            }
+        }
     }
 
     private async Task OnFileUploadChanged(string key, InputFileChangeEventArgs e)

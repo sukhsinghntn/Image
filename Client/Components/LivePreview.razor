@@ -127,7 +127,7 @@
                             break;
                         case "grid_text":
                             {
-                                var rows = GetTextGridRows(field);
+                                var rows = GetTextGridData(field);
                                 <table class="table table-bordered table-sm">
                                     <thead>
                                         <tr>
@@ -139,19 +139,18 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach (var (r, idx) in rows.Select((r, idx) => (r, idx)))
+                                        @for (int r = 0; r < rows.Count; r++)
                                         {
                                             <tr>
-                                                @foreach (var col in field.GridColumns)
+                                                @for (int c = 0; c < field.GridColumns.Count; c++)
                                                 {
-                                                    <td><input class="form-control" /></td>
+                                                    <td><input class="form-control" value="@rows[r][c]" @onchange="e => OnTextGridChanged(field, r, c, e)" /></td>
                                                 }
-                                                <td><button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveTextGridRow(field, idx)">×</button></td>
+                                                <td><button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveTextGridRow(field, r)">×</button></td>
                                             </tr>
                                         }
                                     </tbody>
                                 </table>
-                                <button class="btn btn-sm btn-outline-primary" @onclick="() => AddTextGridRow(field)">+ Add Row</button>
                             }
                             break;
                         case "file":
@@ -184,38 +183,77 @@
     [Parameter] public List<DesignerSection> Sections { get; set; } = new();
     [Parameter] public string? FormName { get; set; }
 
-    Dictionary<DesignerField, List<int>> textGridRows = new();
+    Dictionary<DesignerField, List<List<string>>> textGridData = new();
 
-    List<int> GetTextGridRows(DesignerField field)
+    List<List<string>> GetTextGridData(DesignerField field)
     {
-        if (!textGridRows.TryGetValue(field, out var rows))
+        if (!textGridData.TryGetValue(field, out var data))
         {
-            rows = new List<int> { 0 };
-            textGridRows[field] = rows;
+            data = new List<List<string>>();
+            textGridData[field] = data;
         }
-        if (rows.Count == 0)
+
+        var cols = field.GridColumns.Count;
+        if (data.Count == 0)
         {
-            rows.Add(0);
+            data.Add(Enumerable.Repeat(string.Empty, cols).ToList());
         }
-        return rows;
+
+        foreach (var row in data)
+        {
+            while (row.Count < cols)
+            {
+                row.Add(string.Empty);
+            }
+        }
+
+        return data;
     }
 
-    void AddTextGridRow(DesignerField field)
-    {
-        var rows = GetTextGridRows(field);
-        rows.Add(rows.Count);
-    }
+    bool IsTextGridRowEmpty(List<string> row) => row.All(string.IsNullOrWhiteSpace);
 
     void RemoveTextGridRow(DesignerField field, int index)
     {
-        var rows = GetTextGridRows(field);
+        var rows = GetTextGridData(field);
         if (index >= 0 && index < rows.Count)
         {
             rows.RemoveAt(index);
         }
-        if (rows.Count == 0)
+    }
+
+    void OnTextGridChanged(DesignerField field, int row, int col, ChangeEventArgs e)
+    {
+        var rows = GetTextGridData(field);
+
+        while (rows.Count <= row)
         {
-            rows.Add(0);
+            var cols = rows[0].Count;
+            rows.Add(Enumerable.Repeat(string.Empty, cols).ToList());
+        }
+
+        var rowList = rows[row];
+        while (rowList.Count <= col)
+        {
+            rowList.Add(string.Empty);
+        }
+
+        rowList[col] = e.Value?.ToString() ?? string.Empty;
+
+        if (col == 0 && row == rows.Count - 1 && !string.IsNullOrWhiteSpace(rowList[0]))
+        {
+            rows.Add(Enumerable.Repeat(string.Empty, rowList.Count).ToList());
+        }
+
+        for (int i = rows.Count - 1; i > 0; i--)
+        {
+            if (IsTextGridRowEmpty(rows[i]) && IsTextGridRowEmpty(rows[i - 1]))
+            {
+                rows.RemoveAt(i);
+            }
+            else if (!IsTextGridRowEmpty(rows[i]))
+            {
+                break;
+            }
         }
     }
 
