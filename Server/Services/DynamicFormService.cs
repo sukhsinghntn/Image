@@ -305,8 +305,11 @@ namespace DynamicFormsApp.Server.Services
 
         public async Task<Form> StoreResponseAsync(int formId, Dictionary<string, object> values, string? responderName = null)
         {
-            var form = await _db.Forms.FindAsync(formId)
-                       ?? throw new InvalidOperationException("Form not found");
+            // Ensure we load field definitions so we know which columns to insert values for.
+            var form = await _db.Forms
+                .Include(f => f.Fields)
+                .FirstOrDefaultAsync(f => f.Id == formId)
+                ?? throw new InvalidOperationException("Form not found");
             if (!form.IsActive)
             {
                 throw new InvalidOperationException("Form inactive");
@@ -341,7 +344,8 @@ namespace DynamicFormsApp.Server.Services
                         JsonValueKind.Number when je.TryGetDouble(out var d) => d,
                         JsonValueKind.True => true,
                         JsonValueKind.False => false,
-                        JsonValueKind.Array => je.GetRawText(), // Store JSON string for arrays
+                        // Persist any array or object payload as its JSON representation
+                        JsonValueKind.Array => je.GetRawText(),
                         JsonValueKind.Object => je.GetRawText(),
                         JsonValueKind.Null => null,
                         _ => je.GetRawText(),
@@ -349,6 +353,7 @@ namespace DynamicFormsApp.Server.Services
                 }
                 else if (raw is System.Collections.IEnumerable enumerable && raw is not string)
                 {
+                    // Serialize collections (e.g., text grid rows) to JSON strings
                     raw = JsonSerializer.Serialize(enumerable);
                 }
 
