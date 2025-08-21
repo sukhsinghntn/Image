@@ -376,7 +376,7 @@ else
                     "checkbox" => new List<string>(),
                     "grid_radio" => new Dictionary<string, string>(),
                     "grid_checkbox" => new Dictionary<string, List<string>>(),
-                    "grid_text" => new List<Dictionary<string, string>> { new Dictionary<string, string>() },
+                    "grid_text" => new List<Dictionary<string, string>>(),
                     "number" => (object?)null,
                     "date" => (object?)null,
                     "time" => (object?)null,
@@ -550,7 +550,7 @@ else
     {
         if (responseData[key] is List<Dictionary<string, string>> list)
             return list;
-        var newList = new List<Dictionary<string, string>> { new Dictionary<string, string>() };
+        var newList = new List<Dictionary<string, string>>();
         responseData[key] = newList;
         return newList;
     }
