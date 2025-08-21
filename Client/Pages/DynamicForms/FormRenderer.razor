@@ -549,8 +549,12 @@ else
     List<Dictionary<string, string>> GetTextGridRows(string key)
     {
         if (responseData[key] is List<Dictionary<string, string>> list)
+        {
+            if (list.Count == 0)
+                list.Add(new Dictionary<string, string>());
             return list;
-        var newList = new List<Dictionary<string, string>>();
+        }
+        var newList = new List<Dictionary<string, string>> { new Dictionary<string, string>() };
         responseData[key] = newList;
         return newList;
     }
@@ -564,8 +568,8 @@ else
     void OnTextGridChanged(string key, int rowIndex, string column, ChangeEventArgs e)
     {
         var rows = GetTextGridRows(key);
-        while (rows.Count <= rowIndex)
-            rows.Add(new Dictionary<string, string>());
+        if (rowIndex < 0 || rowIndex >= rows.Count)
+            return;
         rows[rowIndex][column] = e.Value?.ToString() ?? string.Empty;
     }
 
