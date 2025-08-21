@@ -336,18 +336,55 @@ namespace DynamicFormsApp.Server.Services
                 object raw = kv.Value;
                 if (raw is JsonElement je)
                 {
-                    raw = je.ValueKind switch
+                    if (je.ValueKind == JsonValueKind.Array)
                     {
-                        JsonValueKind.String => je.GetString(),
-                        JsonValueKind.Number when je.TryGetInt64(out var l) => l,
-                        JsonValueKind.Number when je.TryGetDouble(out var d) => d,
-                        JsonValueKind.True => true,
-                        JsonValueKind.False => false,
-                        JsonValueKind.Array => je.GetRawText(),
-                        JsonValueKind.Object => je.GetRawText(),
-                        JsonValueKind.Null => null,
-                        _ => je.GetRawText(),
-                    };
+                        // attempt to detect nested arrays (text grids) and trim empty rows
+                        try
+                        {
+                            var nested = JsonSerializer.Deserialize<List<List<string>>>(je.GetRawText()) ?? new();
+                            nested = nested
+                                .Where(row => row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
+                                .Select(row => row.Select(cell => cell ?? string.Empty).ToList())
+                                .ToList();
+                            raw = nested.Count > 0 ? JsonSerializer.Serialize(nested) : null;
+                        }
+                        catch
+                        {
+                            raw = je.GetRawText();
+                        }
+                    }
+                    else if (je.ValueKind == JsonValueKind.Object)
+                    {
+                        raw = je.GetRawText();
+                    }
+                    else if (je.ValueKind == JsonValueKind.String)
+                    {
+                        raw = je.GetString();
+                    }
+                    else if (je.ValueKind == JsonValueKind.Number && je.TryGetInt64(out var l))
+                    {
+                        raw = l;
+                    }
+                    else if (je.ValueKind == JsonValueKind.Number && je.TryGetDouble(out var d))
+                    {
+                        raw = d;
+                    }
+                    else if (je.ValueKind == JsonValueKind.True)
+                    {
+                        raw = true;
+                    }
+                    else if (je.ValueKind == JsonValueKind.False)
+                    {
+                        raw = false;
+                    }
+                    else if (je.ValueKind == JsonValueKind.Null)
+                    {
+                        raw = null;
+                    }
+                    else
+                    {
+                        raw = je.GetRawText();
+                    }
                 }
                 else if (raw is List<string> stringList)
                 {
@@ -355,10 +392,14 @@ namespace DynamicFormsApp.Server.Services
                 }
                 else if (raw is List<List<string>> nestedList)
                 {
-                    raw = JsonSerializer.Serialize(nestedList);
+                    var cleaned = nestedList
+                        .Where(row => row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
+                        .Select(row => row.Select(cell => cell ?? string.Empty).ToList())
+                        .ToList();
+                    raw = cleaned.Count > 0 ? JsonSerializer.Serialize(cleaned) : null;
                 }
 
-                sqlParams.Add(new SqlParameter($"@p{idx}", raw ?? DBNull.Value));
+                sqlParams.Add(new SqlParameter($"@p{idx}", raw ?? (object)DBNull.Value));
                 idx++;
             }
 

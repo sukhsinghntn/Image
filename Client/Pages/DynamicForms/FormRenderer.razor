@@ -701,6 +701,28 @@ else
             }
         }
 
+        // Remove any text grid rows that are completely blank so we don't
+        // persist empty default rows to the server
+        foreach (var key in responseData.Keys.ToList())
+        {
+            if (responseData[key] is List<List<string>> grid)
+            {
+                var cleaned = grid
+                    .Where(row => row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
+                    .Select(row => row.Select(cell => cell ?? string.Empty).ToList())
+                    .ToList();
+
+                if (cleaned.Count > 0)
+                {
+                    responseData[key] = cleaned;
+                }
+                else
+                {
+                    responseData.Remove(key);
+                }
+            }
+        }
+
         var submitData = responseData
             .Where(kv =>
                 form.Fields.Any(f =>
