@@ -712,7 +712,24 @@ List<object> BuildFieldPayload()
                 {
                     try
                     {
-                        field.OptionItems = JsonSerializer.Deserialize<List<string>>(f.OptionsJson) ?? new();
+                        if (f.FieldType == "grid_radio" || f.FieldType == "grid_checkbox")
+                        {
+                            using var doc = JsonDocument.Parse(f.OptionsJson);
+                            if (doc.RootElement.TryGetProperty("Rows", out var rowsEl) && rowsEl.ValueKind == JsonValueKind.Array)
+                                field.GridRows = rowsEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                            if (doc.RootElement.TryGetProperty("Columns", out var colsEl) && colsEl.ValueKind == JsonValueKind.Array)
+                                field.GridColumns = colsEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                        }
+                        else if (f.FieldType == "grid_text")
+                        {
+                            using var doc = JsonDocument.Parse(f.OptionsJson);
+                            if (doc.RootElement.TryGetProperty("Columns", out var colsEl) && colsEl.ValueKind == JsonValueKind.Array)
+                                field.GridColumns = colsEl.EnumerateArray().Select(e => e.GetString() ?? string.Empty).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                        }
+                        else
+                        {
+                            field.OptionItems = JsonSerializer.Deserialize<List<string>>(f.OptionsJson) ?? new();
+                        }
                     }
                     catch { }
                 }

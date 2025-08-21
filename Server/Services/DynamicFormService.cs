@@ -347,10 +347,9 @@ namespace DynamicFormsApp.Server.Services
                         _ => je.GetRawText(),
                     };
                 }
-
-                if (raw is List<string> stringList)
+                else if (raw is System.Collections.IEnumerable enumerable && raw is not string)
                 {
-                    raw = JsonSerializer.Serialize(stringList);
+                    raw = JsonSerializer.Serialize(enumerable);
                 }
 
                 sqlParams.Add(new SqlParameter($"@p{idx}", raw ?? DBNull.Value));
