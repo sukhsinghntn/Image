@@ -575,11 +575,7 @@ else
                 row.Add(string.Empty);
         }
 
-        while (list.Count > 0 && list[^1].All(string.IsNullOrEmpty))
-        {
-            list.RemoveAt(list.Count - 1);
-        }
-
+        list.RemoveAll(r => r.All(string.IsNullOrEmpty));
         list.Add(Enumerable.Repeat(string.Empty, cols).ToList());
     }
 
